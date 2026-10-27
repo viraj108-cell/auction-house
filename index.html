@@ -209,9 +209,9 @@ const QUESTIONS=[
 ];
 const FINAL={t:"Final round",q:"Mendel crossed true-breeding purple and white flowers. The F1 were all purple, but the F2 had 705 purple and 224 white. What ratio is that, and why did white come back?",a:"<b>About 3 : 1.</b> The F1 were all heterozygous (Pp) and carried the hidden white allele. Each F2 plant had a 1/4 chance of getting p from both parents (pp), which shows white."};
 
-const KEY="auction-house-v2";
+const KEY="auction-house-v3";
 const START=1000;
-const SAMPLE=["Punnett Squad","Sister Chromatids","Crossing Over","Allele-luia","The Mitochondria"];
+const SAMPLE=["Punnett Squad","Allele-luia","Hemo-Goblins","Sickle Sickos","Prophase Prophets"];
 let uid=1;
 function fresh(){return{teams:SAMPLE.map(n=>({id:uid++,name:n,bal:START})),bid:200,cap:500,final:false,wagers:{},q:1,history:[],log:[],sound:true}}
 let S;
