@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Auction House Scoreboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700;6..96,900&family=Archivo:wght@400;600;800&display=swap">
+<style>
+/* Layout: auction-room scoreboard. Question on the block up top, bid rail, team lots in a wrapping grid, SOLD! overlay. Single dark look by choice. */
+:root{
+  --bg:#1b1012;
+  --panel:#2a181b;
+  --line:#4a2c30;
+  --fg:#f3e7dc;
+  --muted:#b9a196;
+  --brass:#d9a648;
+  --good:#7fcf8e;
+  --bad:#ef7a6c;
+  --display:"Bodoni Moda", "Didot", Georgia, serif;
+  --body:"Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;
+  padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1600px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px;border-bottom:1px solid var(--line);padding-bottom:14px}
+h1{font-family:var(--display);font-weight:900;font-size:clamp(2rem,5vw,3.2rem);margin:0;letter-spacing:.01em;line-height:1}
+h1 span{color:var(--brass)}
+.headr{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.14em;color:var(--muted)}
+
+/* question block */
+.block{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 24px;display:flex;flex-direction:column;gap:16px}
+.block.final{border-color:var(--brass)}
+.blocktop{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}
+.lotno{font-family:var(--display);font-weight:900;font-size:1.5rem;color:var(--brass);font-variant-numeric:tabular-nums}
+.topic{font-size:.72rem;text-transform:uppercase;letter-spacing:.14em;border:1px solid var(--line);border-radius:999px;padding:4px 10px;color:var(--muted)}
+.qtext{font-size:clamp(1.35rem,2.6vw,2.1rem);font-weight:600;line-height:1.3;margin:0;text-wrap:balance;max-width:48ch}
+.answer{border-top:1px dashed var(--line);padding-top:14px;font-size:clamp(1.1rem,2vw,1.5rem);line-height:1.45;max-width:60ch}
+.answer b{color:var(--good)}
+
+.rail{display:flex;flex-wrap:wrap;gap:16px 28px;align-items:flex-end}
+.group{display:flex;flex-direction:column;gap:8px;min-width:0}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:8px;padding:9px 14px;font-weight:600}
+button:hover{border-color:var(--brass)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+button.chip{font-variant-numeric:tabular-nums;min-width:68px}
+button.chip[aria-pressed="true"]{background:var(--brass);color:var(--bg);border-color:var(--brass)}
+button.on,button.primary{background:var(--brass);color:var(--bg);border-color:var(--brass)}
+button.ghost{background:transparent}
+input[type=number]{font:inherit;font-weight:600;width:110px;padding:9px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font-variant-numeric:tabular-nums}
+.bidnow{font-family:var(--display);font-weight:900;font-size:2.4rem;line-height:1;color:var(--brass);font-variant-numeric:tabular-nums;min-width:4ch}
+.final-note{font-size:.95rem;color:var(--brass)}
+
+/* arena: teams on both sides, question in the middle */
+.arena{display:grid;grid-template-columns:minmax(200px,1fr) minmax(0,2.4fr) minmax(200px,1fr);gap:20px;align-items:start}
+.side{display:flex;flex-direction:column;gap:14px;min-width:0}
+.center{display:flex;flex-direction:column;gap:18px;min-width:0}
+.block{min-height:min(52vh,520px);justify-content:center;align-items:center;text-align:center;padding:32px 28px}
+.blocktop{justify-content:center}
+.qtext{font-size:clamp(1.8rem,3.4vw,3.2rem);font-weight:700;line-height:1.22;max-width:30ch;margin:0 auto}
+.answer{max-width:46ch;margin:0 auto;font-size:clamp(1.15rem,2vw,1.7rem)}
+.qnav{justify-content:center}
+.rail{justify-content:center}
+.final-note,.log{text-align:center;justify-content:center}
+.side .bal{font-size:clamp(1.9rem,2.8vw,2.5rem)}
+@media (max-width:900px){
+  .arena{grid-template-columns:1fr 1fr}
+  .center{grid-column:1 / -1;order:-1}
+  .block{min-height:0}
+}
+@media (max-width:520px){.arena{grid-template-columns:1fr}}
+.lot{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.lot.lead{border-color:var(--brass)}
+.lothead{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:30px}
+.paddle{font-size:.72rem;text-transform:uppercase;letter-spacing:.14em;color:var(--muted)}
+.lead .paddle{color:var(--brass)}
+.name{font:inherit;font-weight:800;font-size:1.15rem;width:100%;background:transparent;border:1px solid transparent;border-radius:6px;color:var(--fg);padding:4px 6px;margin-left:-6px}
+.name:hover{border-color:var(--line)}
+.name:focus{outline:none;border-color:var(--brass)}
+.bal{font-family:var(--display);font-weight:900;font-size:clamp(2.2rem,4vw,2.8rem);line-height:1;font-variant-numeric:tabular-nums;transition:color .3s}
+.bal.flash-good{color:var(--good)}
+.bal.flash-bad{color:var(--bad)}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.right{border-color:color-mix(in srgb,var(--good) 50%,var(--line));color:var(--good)}
+.wrong{border-color:color-mix(in srgb,var(--bad) 50%,var(--line));color:var(--bad)}
+.right:hover{background:color-mix(in srgb,var(--good) 18%,var(--panel));border-color:var(--good)}
+.wrong:hover{background:color-mix(in srgb,var(--bad) 18%,var(--panel));border-color:var(--bad)}
+.wager{display:flex;gap:8px;align-items:center}
+.wager input{flex:1;min-width:0;width:auto}
+.x{background:transparent;border:none;color:var(--muted);padding:2px 6px;font-size:1.1rem;line-height:1}
+.x:hover{color:var(--bad)}
+.addlot{border:1px dashed var(--line);background:transparent;color:var(--muted);border-radius:12px;min-height:160px;font-size:1rem}
+.addlot:hover{color:var(--fg)}
+
+.log{font-size:.85rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 16px}
+.log span{font-variant-numeric:tabular-nums}
+footer{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:14px}
+.confirm{display:flex;gap:8px;align-items:center;font-size:.9rem;flex-wrap:wrap}
+
+.sold{position:fixed;inset:0;display:grid;place-items:center;background:color-mix(in srgb,var(--bg) 86%,transparent);z-index:20;text-align:center;padding:20px;overflow:hidden;cursor:pointer}
+.sold .big{font-family:var(--display);font-weight:900;font-size:clamp(4rem,16vw,11rem);line-height:.9;color:var(--brass);letter-spacing:.02em}
+.sold.miss .big{color:var(--bad)}
+.sold .sub{font-weight:800;font-size:clamp(1.2rem,3vw,2rem);margin-top:14px}
+.sold .hint{font-size:.8rem;color:var(--muted);margin-top:18px;letter-spacing:.1em;text-transform:uppercase}
+.sold .card{position:relative;z-index:2}
+.sold .card.go{animation:slam .5s cubic-bezier(.2,1.6,.4,1)}
+.sold.miss .card.go{animation:sag 1.6s ease-in-out}
+@keyframes slam{from{transform:scale(1.8) rotate(-6deg);opacity:0}to{transform:none;opacity:1}}
+@keyframes sag{0%{transform:translateY(-20px);opacity:0}20%{opacity:1;transform:none}100%{transform:translateY(14px) rotate(2deg)}}
+.bit{position:absolute;top:-20px;width:10px;height:16px;border-radius:2px;z-index:1;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+@media (prefers-reduced-motion:reduce){.sold .card.go,.sold.miss .card.go{animation:none}.bit{display:none}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Auction <span>House</span></h1>
+    <div class="headr">
+      <button class="ghost" id="sound" aria-pressed="true">Sound on</button>
+    </div>
+  </header>
+
+  <section class="arena">
+  <div class="side" id="left" aria-label="Teams"></div>
+  <div class="center">
+  <section class="block" id="block" aria-live="polite">
+    <div class="blocktop">
+      <span class="lotno" id="lotno">Lot 1</span><span class="topic" id="topic"></span>
+    </div>
+    <p class="qtext" id="qtext"></p>
+    <div class="answer" id="answer" hidden></div>
+    <div class="row qnav">
+      <button class="ghost" id="prev">Back</button>
+      <button id="reveal">Reveal answer</button>
+      <button class="primary" id="next">Next question</button>
+    </div>
+  </section>
+
+  <section class="rail" aria-label="Bid controls">
+    <div class="group">
+      <div class="label">Current bid</div>
+      <div class="bidnow" id="bidnow">$200</div>
+    </div>
+    <div class="group" id="chipgroup">
+      <div class="label">Set bid</div>
+      <div class="row" id="chips"></div>
+    </div>
+    <div class="group" id="customgroup">
+      <label class="label" for="custom">Custom</label>
+      <div class="row"><input type="number" id="custom" min="0" step="50" placeholder="e.g. 250"></div>
+    </div>
+    <div class="group">
+      <label class="label" for="cap">Max bid</label>
+      <div class="row"><input type="number" id="cap" min="50" step="50"></div>
+    </div>
+    <div class="group">
+      <div class="label">Round</div>
+      <div class="row"><button id="finalBtn">Final: all-in</button></div>
+    </div>
+  </section>
+  <div class="final-note" id="finalNote" hidden>Final round. Each team writes a secret wager (up to its balance), then enter it on its card and mark right or wrong.</div>
+  <div class="log" id="log" aria-live="polite"></div>
+  </div>
+  <div class="side" id="right" aria-label="Teams"></div>
+  </section>
+
+  <footer>
+    <div class="row"><button class="ghost" id="undo">Undo last</button><button class="ghost" id="addTeam">+ Add team</button></div>
+    <div class="row" id="resetArea"><button class="ghost" id="reset">Reset game</button></div>
+  </footer>
+</div>
+
+<div class="sold" id="sold" hidden><div class="card" id="soldCard"><div class="big" id="soldBig">SOLD!</div><div class="sub" id="soldSub"></div><div class="hint">Tap to close</div></div></div>
+
+<script>
+/* Exam 3 scope as of Week 11: sickle cell unit, Chapter 9 meiosis, Chapter 10 through monohybrid Punnett squares. */
+const QUESTIONS=[
+ {t:"Sickle Cell",q:"How many chains make up one hemoglobin molecule, and what types are they?",a:"<b>Four chains: 2 alpha and 2 beta.</b> Each chain holds a heme group with iron that binds O2."},
+ {t:"Sickle Cell",q:"What process moves O2 out of the blood and into the tissues?",a:"<b>Diffusion.</b> O2 moves from high concentration (blood) to low concentration (tissues). CO2 goes the other way because the tissues keep producing it."},
+ {t:"Sickle Cell",q:"Why are capillary walls so thin compared with arteries?",a:"<b>They are one cell thick so gases can diffuse across quickly.</b> Arteries need thick, muscular walls to handle high pressure."},
+ {t:"Sickle Cell",q:"In sickle cell disease, the 6th amino acid of the beta chain changes from ____ to ____.",a:"<b>Glutamic acid (very polar) to valine (nonpolar).</b> The nonpolar patch makes hemoglobin molecules stick together into fibers, bending the red blood cell into a sickle."},
+ {t:"Sickle Cell",q:"Normal red blood cells live about 120 days. Sickled cells live about how long, and what does that cause?",a:"<b>About 10 to 20 days.</b> The body can't replace them fast enough, which causes chronic anemia."},
+ {t:"Sickle Cell",q:"How many mutated copies does a person with sickle cell DISEASE carry? With sickle cell TRAIT?",a:"<b>Disease: 2 copies. Trait: 1 copy.</b> You need a mutated allele from both parents to have the disease."},
+ {t:"Sickle Cell",q:"Why hasn't the sickle cell allele faded away in regions with malaria?",a:"<b>People with sickle cell trait have about a 30% lower risk of malaria.</b> Carriers survive better, so stabilizing selection keeps the allele around."},
+ {t:"Meiosis",q:"How many rounds of DNA replication happen in meiosis? How many rounds of division?",a:"<b>1 replication, 2 divisions</b> (meiosis I and meiosis II). There is no S phase between them."},
+ {t:"Meiosis",q:"A human cell (23 pairs) replicates its DNA and finishes meiosis I. How many cells, and how many chromosomes in each?",a:"<b>2 cells, 23 chromosomes each.</b> Each chromosome is still made of 2 sister chromatids."},
+ {t:"Meiosis",q:"When does crossing over happen, and what's the point of it?",a:"<b>Prophase I</b>, between homologous chromosomes in a tetrad. It shuffles alleles to create new combinations, increasing genetic variation."},
+ {t:"Meiosis",q:"Homologous chromosomes separate in which phase? Sister chromatids separate in which phase?",a:"<b>Homologs: Anaphase I. Sister chromatids: Anaphase II.</b>"},
+ {t:"Meiosis",q:"How does Metaphase I differ from Metaphase II and mitotic metaphase?",a:"<b>Metaphase I: homologous pairs line up as a double row.</b> Metaphase II and mitosis: individual chromosomes line up in a single row."},
+ {t:"Meiosis",q:"An organism with 2n = 8 replicates its DNA and finishes meiosis I. How many cells, how many chromosomes each, and one or two chromatids per chromosome?",a:"<b>2 cells, 4 chromosomes each, 2 chromatids per chromosome.</b>"},
+ {t:"Meiosis",q:"What is nondisjunction?",a:"<b>Chromosomes fail to separate properly</b> (homologs in meiosis I or sister chromatids in meiosis II), so gametes end up with too many or too few chromosomes. Example: trisomy 21."},
+ {t:"Meiosis",q:"The two X chromosomes fail to separate in meiosis I in an egg-producing cell. An egg with both X's is fertilized by a Y sperm. What are the offspring's sex chromosomes?",a:"<b>XXY.</b> The eggs would carry 24 or 22 chromosomes; the other egg (no X) plus a Y sperm would give a Y-only zygote, which is not viable."},
+ {t:"Genetics",q:"What does \"pure breeding\" (true breeding) mean?",a:"<b>The plant is homozygous for the trait,</b> so self-fertilizing it always produces offspring identical to itself."},
+ {t:"Genetics",q:"A parent is Pp. What gametes can it make, and in what proportion?",a:"<b>P or p, 50% each.</b> That's Mendel's law of segregation: the two alleles split into separate gametes during meiosis."},
+ {t:"Genetics",q:"Pure-breeding tall (TT) is crossed with pure-breeding short (tt). What are the F1 genotype and phenotype?",a:"<b>All Tt, all tall.</b>"},
+ {t:"Genetics",q:"Two of those F1 plants (Tt × Tt) are crossed. What are the F2 genotype and phenotype ratios?",a:"<b>Genotype 1 TT : 2 Tt : 1 tt. Phenotype 3 tall : 1 short.</b> Short comes back because the F1 plants were carrying the hidden t allele."},
+ {t:"Genetics",q:"Two parents both have sickle cell trait. What's the chance their child has sickle cell DISEASE? The TRAIT?",a:"<b>Disease: 1/4 (25%). Trait: 1/2 (50%).</b> Neither: 1/4."},
+ {t:"Genetics",q:"A yellow-seed pea (YY or Yy) is crossed with a green-seed pea (yy). Some offspring are green. What is the yellow parent's genotype?",a:"<b>Yy.</b> A green offspring needs a y from each parent, so the yellow parent must carry one."},
+ {t:"Genetics",q:"PTC tasting is dominant. A heterozygous taster woman has kids with a non-taster man. What percent of their kids will be non-tasters?",a:"<b>50%.</b> Tt × tt gives half Tt (tasters) and half tt (non-tasters)."},
+ {t:"Genetics",q:"What is a carrier?",a:"<b>A heterozygous individual</b> who has one recessive allele for a trait or disease but doesn't show it, and can pass it to offspring."}
+];
+const FINAL={t:"Final round",q:"Mendel crossed true-breeding purple and white flowers. The F1 were all purple, but the F2 had 705 purple and 224 white. What ratio is that, and why did white come back?",a:"<b>About 3 : 1.</b> The F1 were all heterozygous (Pp) and carried the hidden white allele. Each F2 plant had a 1/4 chance of getting p from both parents (pp), which shows white."};
+
+const KEY="auction-house-v2";
+const START=1000;
+const SAMPLE=["Punnett Squad","Sister Chromatids","Crossing Over","Allele-luia","The Mitochondria"];
+let uid=1;
+function fresh(){return{teams:SAMPLE.map(n=>({id:uid++,name:n,bal:START})),bid:200,cap:500,final:false,wagers:{},q:1,history:[],log:[],sound:true}}
+let S;
+try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}
+if(!S||!Array.isArray(S.teams)){S=fresh()}else{uid=Math.max(0,...S.teams.map(t=>t.id))+1;if(S.sound===undefined)S.sound=true}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+const $=id=>document.getElementById(id);
+const money=n=>"$"+n.toLocaleString("en-US");
+let revealed=false;
+
+function snapshot(){S.history.push(JSON.stringify({teams:S.teams,q:S.q,log:S.log}));if(S.history.length>50)S.history.shift()}
+
+/* ---------- question block ---------- */
+function renderQuestion(){
+  const blk=$("block");
+  let item;
+  if(S.final){item=FINAL;$("lotno").textContent="Final lot";}
+  else if(S.q<=QUESTIONS.length){item=QUESTIONS[S.q-1];$("lotno").textContent="Lot "+S.q+" of "+QUESTIONS.length;}
+  else{item={t:"Done",q:"That's every question. Switch on Final: all-in for the last round.",a:""};$("lotno").textContent="Lot "+S.q;}
+  blk.classList.toggle("final",S.final);
+  $("topic").textContent=item.t;
+  $("qtext").textContent=item.q;
+  $("answer").innerHTML=item.a;
+  $("answer").hidden=!revealed||!item.a;
+  $("reveal").textContent=revealed?"Hide answer":"Reveal answer";
+  $("reveal").disabled=!item.a;
+  $("prev").disabled=S.final||S.q<=1;
+  $("next").disabled=S.final;
+}
+
+/* ---------- rail ---------- */
+function renderRail(){
+  $("cap").value=S.cap;
+  const cv=parseInt($("custom").value,10);
+  $("bidnow").textContent=S.final?"All-in":money(Number.isFinite(cv)?Math.min(cv,S.cap):S.bid);
+  const chips=$("chips");chips.innerHTML="";
+  for(let v=100;v<=S.cap;v+=100){
+    const b=document.createElement("button");b.className="chip";b.textContent=money(v);
+    b.setAttribute("aria-pressed",String(!S.final&&S.bid===v&&!$("custom").value));
+    b.onclick=()=>{S.bid=v;$("custom").value="";save();render()};
+    chips.appendChild(b);
+  }
+  $("chipgroup").hidden=S.final;$("customgroup").hidden=S.final;
+  $("finalBtn").classList.toggle("on",S.final);
+  $("finalBtn").textContent=S.final?"Final: on":"Final: all-in";
+  $("finalNote").hidden=!S.final;
+  $("sound").textContent=S.sound?"Sound on":"Sound off";
+  $("sound").setAttribute("aria-pressed",String(S.sound));
+}
+
+/* ---------- teams ---------- */
+function renderGrid(){
+  const L=$("left"),R=$("right");L.innerHTML="";R.innerHTML="";
+  const top=Math.max(...S.teams.map(t=>t.bal));
+  const ranked=[...S.teams].sort((a,b)=>b.bal-a.bal);
+  S.teams.forEach((t,i)=>{
+    const rank=ranked.findIndex(r=>r.id===t.id)+1;
+    const lead=t.bal===top&&top>0;
+    const lot=document.createElement("article");
+    lot.className="lot"+(lead?" lead":"");
+    lot.innerHTML=`
+      <div class="lothead"><span class="paddle">Paddle ${i+1} · ${lead?"Leading":"Rank "+rank}</span><button class="x" title="Remove team">×</button></div>
+      <input class="name" id="name-${t.id}" aria-label="Team name">
+      <div class="bal" id="bal-${t.id}">${money(t.bal)}</div>
+      ${S.final?`<div class="wager"><label class="label" for="w-${t.id}">Wager</label><input type="number" id="w-${t.id}" min="0" max="${t.bal}" step="50" placeholder="0"></div>`:""}
+      <div class="acts"><button class="right">Right +</button><button class="wrong">Wrong −</button></div>`;
+    const nm=lot.querySelector(".name");nm.value=t.name;
+    nm.oninput=()=>{t.name=nm.value;save()};
+    lot.querySelector(".x").onclick=()=>removeTeam(t,lot);
+    if(S.final){const w=lot.querySelector(`#w-${t.id}`);w.value=S.wagers[t.id]??"";w.oninput=()=>{S.wagers[t.id]=w.value;save()}}
+    lot.querySelector(".right").onclick=()=>score(t,true);
+    lot.querySelector(".wrong").onclick=()=>score(t,false);
+    (i%2===0?L:R).appendChild(lot);
+  });
+}
+$("addTeam").onclick=()=>{const id=uid++;S.teams.push({id,name:"Team "+(S.teams.length+1),bal:START});save();render();const el=$("name-"+id);if(el){el.focus();el.select()}};
+function renderLog(){$("log").innerHTML=S.log.slice(-6).reverse().map(l=>`<span>${l}</span>`).join("")}
+function render(){renderQuestion();renderRail();renderGrid();renderLog()}
+
+function amountFor(t){
+  let a=S.final?parseInt(S.wagers[t.id],10):(parseInt($("custom").value,10)||S.bid);
+  if(!S.final)a=Math.min(a,S.cap);
+  if(!Number.isFinite(a)||a<0)a=0;
+  return Math.min(a,t.bal);
+}
+
+/* ---------- sound (Web Audio, no files) ---------- */
+let AC;
+function ac(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){return null}}if(AC.state==="suspended")AC.resume();return AC}
+function gavel(c,t){
+  const len=0.12,buf=c.createBuffer(1,c.sampleRate*len,c.sampleRate),d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,4);
+  const n=c.createBufferSource();n.buffer=buf;
+  const f=c.createBiquadFilter();f.type="lowpass";f.frequency.value=900;
+  const g=c.createGain();g.gain.value=0.9;
+  n.connect(f).connect(g).connect(c.destination);n.start(t);
+  const o=c.createOscillator(),og=c.createGain();o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(50,t+0.15);
+  og.gain.setValueAtTime(0.7,t);og.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+  o.connect(og).connect(c.destination);o.start(t);o.stop(t+0.2);
+}
+function brass(c,freq,t,dur,vol=0.16,bend=0){
+  const out=c.createGain();out.gain.setValueAtTime(0.0001,t);out.gain.exponentialRampToValueAtTime(vol,t+0.04);
+  out.gain.setValueAtTime(vol,t+dur-0.08);out.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  const f=c.createBiquadFilter();f.type="lowpass";f.frequency.setValueAtTime(700,t);f.frequency.linearRampToValueAtTime(2600,t+0.08);f.frequency.linearRampToValueAtTime(1500,t+dur);
+  f.connect(out).connect(c.destination);
+  [-6,6].forEach(det=>{const o=c.createOscillator();o.type="sawtooth";o.detune.value=det;o.frequency.setValueAtTime(freq,t);
+    if(bend)o.frequency.linearRampToValueAtTime(freq*bend,t+dur);o.connect(f);o.start(t);o.stop(t+dur+0.02)});
+}
+function playSold(){
+  if(!S.sound)return;const c=ac();if(!c)return;const t=c.currentTime+0.05;
+  gavel(c,t);gavel(c,t+0.32);gavel(c,t+0.64);
+  const s=t+0.95, N={G4:392,C5:523.25,E5:659.25,G5:783.99,C6:1046.5};
+  [["G4",0,.14],["C5",.15,.14],["E5",.3,.14],["G5",.45,.32],["E5",.8,.14],["G5",.95,1.4]].forEach(([n,o,d])=>brass(c,N[n],s+o,d));
+  [261.63,329.63,392].forEach(fq=>brass(c,fq,s+.95,1.4,.08));
+}
+function playBust(){
+  if(!S.sound)return;const c=ac();if(!c)return;const t=c.currentTime+0.05;
+  gavel(c,t);
+  [[233.08,.25,.45],[220,.75,.45],[207.65,1.25,.45],[196,1.75,1.1]].forEach(([fq,o,d],i)=>brass(c,fq,t+o,d,.15,i===3?0.97:0));
+}
+
+/* ---------- SOLD overlay ---------- */
+let soldTimer;
+function confetti(){
+  const s=$("sold");s.querySelectorAll(".bit").forEach(b=>b.remove());
+  const cols=["var(--brass)","var(--fg)","var(--good)","#c96b55"];
+  for(let i=0;i<60;i++){const b=document.createElement("span");b.className="bit";
+    b.style.left=Math.random()*100+"%";b.style.background=cols[i%cols.length];
+    b.style.animationDuration=(2.2+Math.random()*2)+"s";b.style.animationDelay=(Math.random()*0.8)+"s";s.appendChild(b)}
+}
+function showOverlay(ok,t,a){
+  const s=$("sold"),card=$("soldCard");
+  s.classList.toggle("miss",!ok);
+  $("soldBig").textContent=ok?"SOLD!":"BUST";
+  $("soldSub").textContent=`${t.name} ${ok?"+":"−"}${money(a)}`;
+  s.querySelectorAll(".bit").forEach(b=>b.remove());
+  if(ok)confetti();
+  s.hidden=false;card.classList.remove("go");void card.offsetWidth;card.classList.add("go");
+  clearTimeout(soldTimer);soldTimer=setTimeout(()=>s.hidden=true,ok?4200:3200);
+}
+$("sold").onclick=()=>{$("sold").hidden=true;clearTimeout(soldTimer)};
+
+function score(t,ok){
+  const a=amountFor(t);
+  if(a===0&&!ok){flashMsg(t.name+" has nothing left to lose");return}
+  snapshot();
+  t.bal=ok?t.bal+a:t.bal-a;
+  S.log.push(`${S.final?"Final":"Q"+S.q} · ${t.name} ${ok?"+":"−"}${money(a)}`);
+  save();render();
+  const b=$("bal-"+t.id);if(b){b.classList.add(ok?"flash-good":"flash-bad");setTimeout(()=>b.classList.remove("flash-good","flash-bad"),1200)}
+  ok?playSold():playBust();
+  showOverlay(ok,t,a);
+}
+function flashMsg(m){S.log.push(m);renderLog();S.log.pop()}
+
+function removeTeam(t,lot){
+  const head=lot.querySelector(".lothead");
+  head.innerHTML=`<span class="confirm">Remove ${t.name}? <button class="wrong" data-y>Remove</button><button data-n>Keep</button></span>`;
+  head.querySelector("[data-y]").onclick=()=>{snapshot();S.teams=S.teams.filter(x=>x.id!==t.id);save();render()};
+  head.querySelector("[data-n]").onclick=render;
+}
+
+/* ---------- controls ---------- */
+$("custom").oninput=renderRail;
+$("cap").onchange=()=>{const v=parseInt($("cap").value,10);if(v>0){S.cap=v;if(S.bid>v)S.bid=Math.floor(v/100)*100||v;save();render()}};
+$("reveal").onclick=()=>{revealed=!revealed;renderQuestion()};
+$("next").onclick=()=>{S.q++;revealed=false;$("custom").value="";save();render()};
+$("prev").onclick=()=>{if(S.q>1){S.q--;revealed=false;save();render()}};
+$("finalBtn").onclick=()=>{S.final=!S.final;S.wagers={};revealed=false;save();render()};
+$("sound").onclick=()=>{S.sound=!S.sound;if(S.sound)ac();save();renderRail()};
+$("undo").onclick=()=>{const h=S.history.pop();if(!h)return;const p=JSON.parse(h);S.teams=p.teams;S.q=p.q;S.log=p.log;save();render()};
+function restoreReset(){$("resetArea").innerHTML=`<button class="ghost" id="reset">Reset game</button>`;bindReset()}
+function bindReset(){$("reset").onclick=()=>{
+  $("resetArea").innerHTML=`<span class="confirm">Reset every balance to ${money(START)} and go back to question 1? <button class="wrong" id="ry">Reset</button><button id="rn">Cancel</button></span>`;
+  $("ry").onclick=()=>{S.teams.forEach(t=>t.bal=START);S.q=1;S.final=false;S.wagers={};S.history=[];S.log=[];revealed=false;save();restoreReset();render()};
+  $("rn").onclick=restoreReset}}
+bindReset();
+render();
+</script>
+</body>
+</html>
